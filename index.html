@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - CHÁ DE FRALDA J &amp; H</title>
+  
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHÁ DE FRALDA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            color: black;
+            margin: 0;
+            padding: 0;
+        }
+        .page {
+            display: none;
+            padding: 20px;
+        }
+        #namePage {
+            display: block;
+            background: linear-gradient(90deg, #ccffff, #ffccff);
+            min-height: 100vh;
+        }
+        #gamePage, #resultPage {
+            background: linear-gradient(90deg, #ffccff, #ccffff);
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+            font-family: "Cooper Black", serif;
+        }
+        h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        h3 {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            width: 80%;
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        #calendar {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            justify-items: center;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .calendar-cell {
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.2em;
+            border-radius: 50%;
+        }
+        .calendar-cell.selected, .calendar-cell.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #advanceButton, #restartButton {
+            margin-top: 20px;
+            display: block;
+            margin: 20px auto;
+        }
+        #adminPage {
+            padding: 20px;
+        }
+        #resultMessage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #resultMessage p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="namePage" class="page">
+        <h1>CHÁ DE FRALDA</h1>
+        <p>Seja Bem-vindo, você poderá escolher de um a dois números, lembrando que após você iniciar o jogo, não poderá jogar novamente.</p>
+        <p>Digite seu nome para começar:</p>
+        <input type="text" id="nameInput">
+        <button id="startButton">COMEÇAR</button>
+    </div>
+
+    <div id="gamePage" class="page">
+        <h1>CHÁ DE FRALDA</h1>
+        <p id="info"></p>
+        <p>Você pode escolher de um a dois números</p>
+        <p id="promptAdvanceTop">APERTE AVANÇAR, PARA VER SUA FRALDA</p>
+        <div id="calendar"></div>
+        <p id="promptAdvanceBottom">APERTE AVANÇAR, PARA VER SUA FRALDA</p>
+        <button id="advanceButton" disabled>AVANÇAR</button>
+    </div>
+
+    <div id="resultPage" class="page">
+        <div id="resultMessage">
+            <h2>PARABÉNS!</h2>
+            <h2>VOCÊ ESCOLHEU OS NÚMEROS</h2>
+            <h2>SUA FRALDA SERÁ:</h2>
+            <p id="prizeList"></p>
+        </div>
+        <button id="restartButton">REINICIAR JOGO</button>
+    </div>
+
+    <div id="adminPage" class="page">
+        <h2>Resultados dos Participantes</h2>
+        <div id="resultsDiv"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('startButton');
+            const advanceButton = document.getElementById('advanceButton');
+            const restartButton = document.getElementById('restartButton');
+            const nameInput = document.getElementById('nameInput');
+            const calendar = document.getElementById('calendar');
+            const info = document.getElementById('info');
+            const prizeList = document.getElementById('prizeList');
+            const resultsDiv = document.getElementById('resultsDiv');
+            const namePage = document.getElementById('namePage');
+            const gamePage = document.getElementById('gamePage');
+            const resultPage = document.getElementById('resultPage');
+            const adminPage = document.getElementById('adminPage');
+            const promptAdvanceTop = document.getElementById('promptAdvanceTop');
+            const promptAdvanceBottom = document.getElementById('promptAdvanceBottom');
+
+            let selectedNumbers = [];
+            const players = new Set();
+            const ADMIN_PASSWORD = 'admin123'; // Change this password for security
+
+            // Initialize selected numbers from localStorage
+            let chosenNumbers = JSON.parse(localStorage.getItem('chosenNumbers')) || [];
+
+            function createCalendar() {
+                for (let i = 1; i <= 102; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    cell.textContent = i;
+                    if (chosenNumbers.includes(i)) {
+                        cell.classList.add('disabled');
+                    }
+                    cell.addEventListener('click', () => handleNumberClick(i, cell));
+                    calendar.appendChild(cell);
+                }
+            }
+
+            function handleNumberClick(number, cell) {
+                if (chosenNumbers.includes(number)) {
+                    alert('Este número já foi escolhido.');
+                    return;
+                }
+                if (selectedNumbers.length >= 2) {
+                    alert('Você já escolheu dois números.');
+                    return;
+                }
+                cell.classList.add('selected');
+                selectedNumbers.push(number);
+                if (selectedNumbers.length === 2) {
+                    advanceButton.disabled = false;
+                }
+            }
+
+            function determinePrize(number) {
+                if (number >= 1 && number <= 10) return 'FRALDA P';
+                if (number >= 11 && number <= 40) return 'FRALDA M';
+                if (number >= 41 && number <= 70) return 'FRALDA G';
+                return 'FRALDA GG';
+            }
+
+            function showResultPage() {
+                if (selectedNumbers.length === 0) {
+                    alert('Você deve escolher pelo menos um número.');
+                    return;
+                }
+
+                let resultText;
+                if (selectedNumbers.length === 1) {
+                    resultText = `Parabéns! Você escolheu o número ${selectedNumbers[0]}. Sua fralda será:`;
+                } else {
+                    resultText = `Parabéns! Você escolheu os números ${selectedNumbers.join(' e ')}. Suas fraldas serão:`;
+                }
+
+                prizeList.innerHTML = selectedNumbers.map(determinePrize).join('<br>');
+                resultPage.style.display = 'block';
+                gamePage.style.display = 'none';
+                promptAdvanceTop.style.display = 'none';
+                promptAdvanceBottom.style.display = 'none';
+
+                // Save selected numbers to localStorage
+                chosenNumbers.push(...selectedNumbers);
+                localStorage.setItem('chosenNumbers', JSON.stringify(chosenNumbers));
+
+                // Save player state in localStorage
+                const playerName = nameInput.value.trim();
+                localStorage.setItem(playerName, JSON.stringify(selectedNumbers));
+            }
+
+            function resetGame() {
+                selectedNumbers = [];
+                document.querySelectorAll('.calendar-cell').forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+                advanceButton.disabled = true;
+                namePage.style.display = 'block';
+                resultPage.style.display = 'none';
+                adminPage.style.display = 'none';
+                gamePage.style.display = 'none';
+            }
+
+            function displayResults() {
+                // Logic to display results for admin
+                resultsDiv.innerHTML = Array.from(players).map(player => {
+                    const playerNumbers = JSON.parse(localStorage.getItem(player)) || [];
+                    return `<div>${player}: ${playerNumbers.map(determinePrize).join(', ')}</div>`;
+                }).join('');
+            }
+
+            startButton.addEventListener('click', () => {
+                const playerName = nameInput.value.trim();
+                if (playerName === ADMIN_PASSWORD) {
+                    namePage.style.display = 'none';
+                    adminPage.style.display = 'block';
+                    displayResults();
+                    return;
+                }
+                if (playerName && !players.has(playerName)) {
+                    players.add(playerName);
+                    if (localStorage.getItem(playerName)) {
+                        alert('Você já jogou uma vez. Não é possível jogar novamente.');
+                        return;
+                    }
+                    namePage.style.display = 'none';
+                    gamePage.style.display = 'block';
+                    info.textContent = `Jogador: ${playerName}`;
+                } else {
+                    alert('Nome inválido ou já utilizado. Por favor, escolha outro nome.');
+                }
+            });
+
+            advanceButton.addEventListener('click', () => {
+                showResultPage();
+            });
+
+            restartButton.addEventListener('click', () => {
+                resetGame();
+            });
+
+            createCalendar();
+        });
+    </script>
+</body>
+</html>
+<!-- partial -->
+  
+</body>
+</html>
